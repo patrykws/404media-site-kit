@@ -25,7 +25,11 @@ export function revenueRoute(platform: Platform, source: RevenueSource) {
   }
 }
 
-/** Several sources as one (e.g. Stripe plus payments entered by hand); a payment id counts once. */
+/**
+ * Several sources as one; a payment id counts once. Combine sources that do
+ * not overlap (Stripe + cash entered by hand) — a site whose own bookings are
+ * also paid through Stripe uses one of the two, or each payment counts twice.
+ */
 export function combineRevenue(...sources: RevenueSource[]): RevenueSource {
   return async () => {
     const seen = new Set<string>()
@@ -43,6 +47,8 @@ type StripeCharge = {
   created: number
   status: string
   paid: boolean
+  captured: boolean
+  disputed: boolean
   description: string | null
   metadata: Record<string, string>
   billing_details: { name: string | null; email: string | null }
@@ -50,10 +56,12 @@ type StripeCharge = {
 }
 
 /**
- * Every successful card payment in the site's Stripe account (EUR, minus
- * refunds), read with the site's own key (`STRIPE_SECRET_KEY`). What it was
- * for comes from the charge's description, or `metadata.title`; a site that
- * sets `metadata.category` on its checkouts gets its own grouping.
+ * Every captured card payment in the site's Stripe account (EUR, minus
+ * refunds, without disputed ones), read with the site's own key
+ * (`STRIPE_SECRET_KEY`). What it was for: the charge's `metadata.title`, else
+ * its description. With Stripe Checkout set both on the payment, not the
+ * session — `payment_intent_data: { description, metadata: { title, category } }`
+ * — or every payment shows as "Zahlung" without a group.
  */
 export function stripeRevenue(options: { secretKey?: string; since?: Date } = {}): RevenueSource {
   return async () => {
@@ -61,7 +69,7 @@ export function stripeRevenue(options: { secretKey?: string; since?: Date } = {}
     if (!key) throw new Error("stripeRevenue: STRIPE_SECRET_KEY is missing")
     const payments: RevenuePayment[] = []
     let after: string | undefined
-    for (let page = 0; page < 100; page++) {
+    for (;;) {
       const query = new URLSearchParams({ limit: "100" })
       if (after) query.set("starting_after", after)
       if (options.since) query.set("created[gte]", String(Math.floor(options.since.getTime() / 1000)))
@@ -74,7 +82,7 @@ export function stripeRevenue(options: { secretKey?: string; since?: Date } = {}
       const { data, has_more } = (await response.json()) as { data: StripeCharge[]; has_more: boolean }
       for (const charge of data) {
         const net = charge.amount - charge.amount_refunded
-        if (charge.status !== "succeeded" || !charge.paid || charge.currency !== "eur" || net <= 0) continue
+        if (charge.status !== "succeeded" || !charge.paid || !charge.captured || charge.disputed || charge.currency !== "eur" || net <= 0) continue
         payments.push({
           id: charge.id,
           at: new Date(charge.created * 1000).toISOString(),
