@@ -1,6 +1,6 @@
 {
   "name": "@404media/site-kit",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "How a client site talks to the 404media editor (app.404media.at).",
   "license": "UNLICENSED",
   "type": "module",
@@ -9,6 +9,7 @@
   ],
   "exports": {
     ".": "./index.ts",
+    "./bookings": "./bookings.ts",
     "./bridge": "./bridge.ts",
     "./collection": "./collection.ts",
     "./define-block": "./define-block.ts",
@@ -24,6 +25,7 @@
     "./sanitize": "./sanitize.ts",
     "./schema": "./schema.ts",
     "./server": "./server/index.ts",
+    "./server/bookings": "./server/bookings.ts",
     "./server/revenue": "./server/revenue.ts",
     "./site-context": "./site-context.tsx",
     "./theme": "./theme.ts",
