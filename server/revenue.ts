@@ -13,13 +13,18 @@ import type { Platform } from "./index"
  * and the editor's site record gets the `umsatz` module (`scripts/site.mjs set <id> --modules umsatz`).
  */
 
-export type RevenueSource = () => Promise<RevenuePayment[]>
+/** `since`: only payments from then on — the editor asks for the full list once a day, otherwise for the last days. A source may ignore it. */
+export type RevenueSource = (options?: { since?: Date }) => Promise<RevenuePayment[]>
 
 export function revenueRoute(platform: Platform, source: RevenueSource) {
   return {
     GET: async (request: Request) => {
       if (!platform.isPlatform(request)) return Response.json({ error: "unauthorized" }, { status: 401 })
-      const payments = (await source()).sort((a, b) => b.at.localeCompare(a.at))
+      const raw = new URL(request.url).searchParams.get("since")
+      const since = raw && !Number.isNaN(Date.parse(raw)) ? new Date(raw) : undefined
+      const payments = (await source({ since }))
+        .filter((payment) => !since || payment.at >= since.toISOString())
+        .sort((a, b) => b.at.localeCompare(a.at))
       return Response.json({ payments }, { headers: { "cache-control": "no-store" } })
     },
   }
@@ -31,9 +36,9 @@ export function revenueRoute(platform: Platform, source: RevenueSource) {
  * also paid through Stripe uses one of the two, or each payment counts twice.
  */
 export function combineRevenue(...sources: RevenueSource[]): RevenueSource {
-  return async () => {
+  return async (options) => {
     const seen = new Set<string>()
-    return (await Promise.all(sources.map((source) => source())))
+    return (await Promise.all(sources.map((source) => source(options))))
       .flat()
       .filter((payment) => !seen.has(payment.id) && Boolean(seen.add(payment.id)))
   }
@@ -64,7 +69,8 @@ type StripeCharge = {
  * — or every payment shows as "Zahlung" without a group.
  */
 export function stripeRevenue(options: { secretKey?: string; since?: Date } = {}): RevenueSource {
-  return async () => {
+  return async (call) => {
+    const since = call?.since ?? options.since
     const key = options.secretKey ?? process.env.STRIPE_SECRET_KEY
     if (!key) throw new Error("stripeRevenue: STRIPE_SECRET_KEY is missing")
     const payments: RevenuePayment[] = []
@@ -72,7 +78,7 @@ export function stripeRevenue(options: { secretKey?: string; since?: Date } = {}
     for (;;) {
       const query = new URLSearchParams({ limit: "100" })
       if (after) query.set("starting_after", after)
-      if (options.since) query.set("created[gte]", String(Math.floor(options.since.getTime() / 1000)))
+      if (since) query.set("created[gte]", String(Math.floor(since.getTime() / 1000)))
       const response = await fetch(`https://api.stripe.com/v1/charges?${query}`, {
         headers: { authorization: `Bearer ${key}` },
         cache: "no-store",
