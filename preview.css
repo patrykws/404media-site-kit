@@ -1,0 +1,163 @@
+/* Editing feedback drawn inside the site's own document while the editor
+   has it in a frame. Only passive things live here (outlines, name chips,
+   dimmed hidden blocks); every control is the editor's, drawn on top. */
+
+[data-aq-mode="edit"] [data-aq-block],
+[data-aq-mode="edit"] [data-aq-fixed] {
+  position: relative;
+  cursor: pointer;
+}
+
+[data-aq-mode="edit"] [data-aq-block]::after,
+[data-aq-mode="edit"] [data-aq-fixed]::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  box-shadow: inset 0 0 0 0 #2f66d9;
+  transition: box-shadow 100ms ease;
+}
+[data-aq-mode="edit"] [data-aq-block]:hover::after {
+  box-shadow: inset 0 0 0 1px rgb(47 102 217 / 0.5);
+}
+[data-aq-mode="edit"] [data-aq-fixed]:hover::after {
+  box-shadow: inset 0 0 0 1px rgb(120 120 120 / 0.6);
+}
+[data-aq-mode="edit"] [data-aq-block][data-aq-selected]::after {
+  box-shadow: inset 0 0 0 2px #2f66d9;
+}
+[data-aq-mode="edit"] [data-aq-fixed][data-aq-selected]::after {
+  box-shadow: inset 0 0 0 2px #6b6b6b;
+}
+
+/* name chip */
+[data-aq-mode="edit"] [data-aq-block]::before,
+[data-aq-mode="edit"] [data-aq-fixed]::before {
+  content: attr(data-aq-label);
+  pointer-events: none;
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 41;
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 6px;
+  background: #2f66d9;
+  color: #fff;
+  font: 500 12px/1 system-ui, sans-serif;
+  letter-spacing: 0;
+  opacity: 0;
+  transition: opacity 100ms ease;
+}
+[data-aq-mode="edit"] [data-aq-fixed]::before {
+  background: #6b6b6b;
+}
+[data-aq-mode="edit"] [data-aq-block]:hover::before,
+[data-aq-mode="edit"] [data-aq-block][data-aq-selected]::before,
+[data-aq-mode="edit"] [data-aq-fixed]:hover::before,
+[data-aq-mode="edit"] [data-aq-fixed][data-aq-selected]::before {
+  opacity: 1;
+}
+
+/* hidden blocks stay visible to the editor, dimmed */
+[data-aq-mode="edit"] [data-aq-block][data-aq-hidden] > :not([data-aq-inline-root]),
+[data-aq-mode="edit"] [data-aq-block][data-aq-hidden] > [data-aq-inline-root] > * {
+  opacity: 0.35;
+  filter: grayscale(1);
+}
+
+/* inline text */
+[data-aq-mode="edit"] [data-aq-field][contenteditable] {
+  cursor: text;
+  /* Sliders and buttons switch selection off; a text being edited needs it back. */
+  user-select: text;
+  -webkit-user-select: text;
+  outline: none;
+  border-radius: 2px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  transition: box-shadow 100ms ease;
+}
+[data-aq-mode="edit"] [data-aq-field][contenteditable]:hover {
+  box-shadow: 0 0 0 1px rgb(47 102 217 / 0.4);
+}
+[data-aq-mode="edit"] [data-aq-field][contenteditable]:focus {
+  box-shadow: 0 0 0 2px #2f66d9;
+}
+[data-aq-mode="edit"] [data-aq-field][contenteditable]:empty::before {
+  content: "…";
+  opacity: 0.4;
+}
+[data-aq-mode="edit"] [data-aq-action="empty"] {
+  opacity: 0.55;
+  border-style: dashed;
+}
+.aq-action-placeholder {
+  cursor: pointer;
+}
+
+/* pictures and videos: outline under the pointer, "replace" once clicked */
+[data-aq-mode="edit"] [data-aq-media] {
+  cursor: pointer;
+}
+.aq-media-box {
+  position: fixed;
+  z-index: 2147483000;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 1px rgb(47 102 217 / 0.6);
+  border-radius: 2px;
+}
+.aq-media-box[data-active] {
+  box-shadow: inset 0 0 0 2px #2f66d9;
+}
+.aq-media-replace {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: #2f66d9;
+  color: #fff;
+  font: 500 13px/1 system-ui, sans-serif;
+  letter-spacing: 0;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.25);
+}
+.aq-media-box[data-small] .aq-media-replace {
+  top: calc(100% + 6px);
+  transform: translateX(-50%);
+}
+.aq-media-replace:hover {
+  background: #2557c0;
+}
+
+/* the editor decides what may be interacted with */
+[data-aq-mode="edit"] form button,
+[data-aq-mode="edit"] form input,
+[data-aq-mode="edit"] form textarea {
+  pointer-events: none;
+}
+
+/* Gallery tiles (`BlockSample`): a still picture of one block — no dev
+   overlays, everything that waits for a scroll to appear shows at once. */
+html[data-aq-gallery] nextjs-portal {
+  display: none !important;
+}
+html[data-aq-gallery] [data-animate],
+html[data-aq-gallery] [data-animate-item],
+html[data-aq-gallery] [data-animate-items] > * {
+  opacity: 1 !important;
+  transform: none !important;
+  clip-path: none !important;
+  visibility: visible !important;
+}

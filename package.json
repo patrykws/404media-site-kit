@@ -1,0 +1,42 @@
+{
+  "name": "@404media/site-kit",
+  "version": "1.0.0",
+  "description": "How a client site talks to the 404media editor (app.404media.at).",
+  "license": "UNLICENSED",
+  "type": "module",
+  "sideEffects": [
+    "*.css"
+  ],
+  "exports": {
+    ".": "./index.ts",
+    "./bridge": "./bridge.ts",
+    "./collection": "./collection.ts",
+    "./define-block": "./define-block.ts",
+    "./editable": "./editable.tsx",
+    "./fields": "./fields.ts",
+    "./gallery": "./gallery.ts",
+    "./inline-fields": "./inline-fields.tsx",
+    "./live-site": "./live-site.tsx",
+    "./preview-host": "./preview-host.tsx",
+    "./preview.css": "./preview.css",
+    "./render": "./render.tsx",
+    "./revenue": "./revenue.ts",
+    "./sanitize": "./sanitize.ts",
+    "./schema": "./schema.ts",
+    "./server": "./server/index.ts",
+    "./server/revenue": "./server/revenue.ts",
+    "./site-context": "./site-context.tsx",
+    "./theme": "./theme.ts",
+    "./types": "./types.ts",
+    "./version": "./version.ts"
+  },
+  "dependencies": {
+    "server-only": "^0.0.1"
+  },
+  "peerDependencies": {
+    "next": ">=16",
+    "react": ">=19",
+    "react-dom": ">=19",
+    "zod": ">=4"
+  }
+}
