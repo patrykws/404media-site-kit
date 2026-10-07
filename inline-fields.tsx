@@ -345,6 +345,7 @@ export function InlineFields({
   fields,
   owner,
   shared,
+  entries,
   children,
 }: {
   fields: Record<string, FieldDescriptor | ItemFieldDescriptor>
@@ -356,6 +357,12 @@ export function InlineFields({
    * content's value is its array of items. The block's own fields win on equal text.
    */
   shared?: { key: string; fields: Record<string, FieldDescriptor | ItemFieldDescriptor>; value: unknown }[]
+  /**
+   * Collection entries the markup lists (news cards, case studies): collection key → its
+   * fields. Each entry's texts become typeable too, reported as `entry:<collection>:<id>`;
+   * the editor saves them to that entry. Block and shared fields win on equal text.
+   */
+  entries?: Record<string, Record<string, FieldDescriptor | ItemFieldDescriptor>>
   children: React.ReactNode
 }) {
   const { mode, edit, site } = useSite()
@@ -368,15 +375,15 @@ export function InlineFields({
   const isFrozen = React.useRef(false)
   const editing = mode === "edit"
 
-  const latest = React.useRef({ block, fields, shared, edit, children, images: site.images })
+  const latest = React.useRef({ block, fields, shared, entries, edit, children, images: site.images, lists: site.entries })
   React.useEffect(() => {
-    latest.current = { block, fields, shared, edit, children, images: site.images }
+    latest.current = { block, fields, shared, entries, edit, children, images: site.images, lists: site.entries }
   })
 
   const scan = React.useCallback(() => {
     const el = root.current
     if (!el || isFrozen.current) return
-    const { block, fields, shared, images } = latest.current
+    const { block, fields, shared, entries, images, lists } = latest.current
     const media: MediaTarget[] = []
     const list = editing ? targets(fields, block.props, "", media) : []
     if (editing) {
@@ -390,6 +397,17 @@ export function InlineFields({
           list.push(...found.map((t) => ({ ...t, path: prefix + t.path, owner })))
           media.push(...itemMedia.map((m) => ({ ...m, path: prefix + m.path, owner })))
         })
+      }
+    }
+    if (editing) {
+      for (const [collection, entryFields] of Object.entries(entries ?? {})) {
+        for (const entry of lists?.[collection] ?? []) {
+          const owner = `entry:${collection}:${entry.id}`
+          const itemMedia: MediaTarget[] = []
+          const found = targets(entryFields, (entry.fields ?? {}) as Record<string, unknown>, "", itemMedia)
+          list.push(...found.map((t) => ({ ...t, owner })))
+          media.push(...itemMedia.map((m) => ({ ...m, owner })))
+        }
       }
     }
     mark(el, list)
