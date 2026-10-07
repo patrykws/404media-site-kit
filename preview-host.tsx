@@ -67,6 +67,15 @@ export function PreviewHost({
     document.documentElement.dataset.aqMode = mode
   }, [mode])
 
+  /* Another page (or entry) opens at its top, not where the last one was scrolled to. */
+  const shown = `${page.slug}\u0000${entry?.collection ?? ""}\u0000${entry?.entry.id ?? ""}`
+  const lastShown = React.useRef(shown)
+  React.useLayoutEffect(() => {
+    if (lastShown.current === shown) return
+    lastShown.current = shown
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" })
+  }, [shown])
+
   /* Where everything sits — after every render, on resize and on scroll. */
   const report = React.useCallback(() => {
     const scrollTop = window.scrollY
