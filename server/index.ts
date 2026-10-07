@@ -21,6 +21,11 @@ import { KIT_VERSION } from "../version"
  * fetch cache — cached until the platform calls the revalidate route. When the
  * platform does not answer: its copy in Vercel Blob (written by the platform's
  * `mirror.ts`), then the seed the site moved over with.
+ *
+ * On a laptop the seed is never silent: without a working connection the page
+ * stops with what to fix, instead of showing the code's starting texts as if
+ * they were published. `PLATFORM_SEED=1` in `.env.local` allows the seed on
+ * purpose (a site not connected yet, working offline).
  */
 
 export type Bundle = {
@@ -119,22 +124,40 @@ export function createPlatform({ siteId, seed }: PlatformOptions) {
     }
   }
 
+  /** On a laptop, falling back to the seed stops the page — unless `PLATFORM_SEED=1`. */
+  function seedOnLaptop(reason: string) {
+    if (process.env.NODE_ENV === "production" || process.env.PLATFORM_SEED === "1") return
+    throw new Error(
+      `[platform] ${reason}. Localhost would show the code's starting texts, not what is published in the editor.\n` +
+        `Fix: put the site's two lines into .env.local and restart the dev server:\n` +
+        `  ssh 404vps docker exec deploy-app-1 node scripts/site.mjs env ${siteId}\n` +
+        `Seed on purpose (not connected yet, offline): PLATFORM_SEED=1 in .env.local.`
+    )
+  }
+
   /** What the live site renders. */
   async function getBundle(): Promise<LoadedBundle> {
     const url = platformUrl()
     const token = process.env.PLATFORM_TOKEN
-    if (url && token) {
-      try {
-        const bundle = await fromPlatform(url, token, {})
-        if (usable(bundle)) return { ...bundle, seeded: false }
-        complain("platform answered without pages — trying the copy")
-      } catch (error) {
-        complain("platform unreachable — trying the copy", error)
-      }
-      const copy = await fromMirror(token)
-      if (copy) return { ...copy, seeded: false }
-      complain("no copy either — rendering the seed")
+    if (!url || !token) {
+      seedOnLaptop(`${!url ? "PLATFORM_URL" : "PLATFORM_TOKEN"} is missing`)
+      return { ...seed(), seeded: true }
     }
+    let reason = "the platform answered without pages"
+    try {
+      const bundle = await fromPlatform(url, token, {})
+      if (usable(bundle)) return { ...bundle, seeded: false }
+      complain("platform answered without pages — trying the copy")
+    } catch (error) {
+      reason = /answered 40[13]/.test(String(error))
+        ? "the editor refused PLATFORM_TOKEN (outdated secret)"
+        : `the editor at ${url} did not answer`
+      complain("platform unreachable — trying the copy", error)
+    }
+    const copy = await fromMirror(token)
+    if (copy) return { ...copy, seeded: false }
+    complain("no copy either — rendering the seed")
+    seedOnLaptop(reason)
     return { ...seed(), seeded: true }
   }
 
