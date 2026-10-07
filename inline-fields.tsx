@@ -373,8 +373,19 @@ export function InlineFields({
     if (!el || !editing) return
     let restore: (() => void) | null = null
     let dirty = false
+    /* Markup that appears later (a scroll scene's next step, a slider's clone) is marked once
+       it settles — not only when the pointer passes, which never happens over a scene's
+       `pointer-events: none` layers. */
+    let settle = 0
     const observer = new MutationObserver(() => {
-      if (!isFrozen.current) dirty = true
+      if (isFrozen.current) return
+      dirty = true
+      window.clearTimeout(settle)
+      settle = window.setTimeout(() => {
+        if (!dirty || isFrozen.current) return
+        dirty = false
+        scan()
+      }, 200)
     })
     observer.observe(el, { childList: true, subtree: true, characterData: true })
 
@@ -460,6 +471,7 @@ export function InlineFields({
     window.addEventListener("blur", onWindowBlur)
     return () => {
       observer.disconnect()
+      window.clearTimeout(settle)
       el.removeEventListener("pointerover", onOver)
       el.removeEventListener("focusin", onFocusIn)
       el.removeEventListener("focusout", onFocusOut)
