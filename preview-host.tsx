@@ -302,12 +302,22 @@ function mediaAt(x: number, y: number): Found | null {
     if (x < r.left || x > r.left + r.width || y < r.top || y > r.top + r.height) return
     const area = r.width * r.height
     if (area >= bestArea || area < 4) return
+    if (!seen(el)) return
     const owner = ownerOf(el)
     if (!owner) return
     best = { el, owner, field: el.dataset.aqMedia ?? "", kind: el.dataset.aqMediaKind ?? "image" }
     bestArea = area
   })
   return best
+}
+
+/** Not faded out: a scroll scene's hidden cards (opacity 0, `visibility: hidden`) must not take the pointer. */
+const seen = (el: HTMLElement) => {
+  if (getComputedStyle(el).visibility === "hidden") return false
+  for (let node: HTMLElement | null = el; node && node !== document.body; node = node.parentElement) {
+    if (Number(getComputedStyle(node).opacity) < 0.05) return false
+  }
+  return true
 }
 
 const box = (el: HTMLElement) => {
