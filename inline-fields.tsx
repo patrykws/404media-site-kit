@@ -110,6 +110,10 @@ function mark(root: HTMLElement, list: Target[]) {
     el.removeAttribute("data-aq-field")
     el.removeAttribute("contenteditable")
     el.removeAttribute("spellcheck")
+    if (el.hasAttribute(REACH)) {
+      ;(el as HTMLElement).style.removeProperty("pointer-events")
+      el.removeAttribute(REACH)
+    }
     if (el.hasAttribute("data-aq-owner-auto")) {
       el.removeAttribute("data-aq-owner")
       el.removeAttribute("data-aq-owner-auto")
@@ -171,6 +175,37 @@ function mark(root: HTMLElement, list: Target[]) {
       }
     })
   }
+}
+
+/**
+ * A marked text inside a `pointer-events: none` layer (a scroll scene, a decorative overlay,
+ * a disabled-looking button) never gets the click. While it is visible it takes the pointer
+ * itself; once it fades out it lets go again, so a faded text on top cannot steal the click
+ * from the one underneath.
+ */
+const REACH = "data-aq-reach"
+function visible(el: HTMLElement) {
+  let opacity = 1
+  for (let node: HTMLElement | null = el; node && node !== document.body; node = node.parentElement) {
+    const style = getComputedStyle(node)
+    if (style.display === "none" || style.visibility === "hidden") return false
+    opacity *= Number(style.opacity)
+    if (opacity < 0.2) return false
+  }
+  return true
+}
+function reach(root: HTMLElement) {
+  root.querySelectorAll<HTMLElement>(`[${MARK}]`).forEach((el) => {
+    if (!own(root, el)) return
+    if (el.hasAttribute(REACH)) {
+      if (visible(el)) return
+      el.style.removeProperty("pointer-events")
+      el.removeAttribute(REACH)
+    } else if (getComputedStyle(el).pointerEvents === "none" && visible(el)) {
+      el.style.setProperty("pointer-events", "auto")
+      el.setAttribute(REACH, "")
+    }
+  })
 }
 
 /* ------------------------------------------------------------------ */
@@ -359,6 +394,7 @@ export function InlineFields({
     }
     mark(el, list)
     markMedia(el, media, images)
+    if (editing) reach(el)
   }, [editing])
 
   /* After every render, and again once the section's own effects (sliders, clones) have run. */
@@ -461,6 +497,11 @@ export function InlineFields({
       if (field(event.target)) event.preventDefault()
     }
 
+    /* Scroll scenes fade texts in and out as the page moves: follow them. */
+    const reachTimer = window.setInterval(() => {
+      if (!isFrozen.current) reach(el)
+    }, 300)
+
     el.addEventListener("pointerover", onOver)
     el.addEventListener("focusin", onFocusIn)
     el.addEventListener("focusout", onFocusOut)
@@ -472,6 +513,7 @@ export function InlineFields({
     return () => {
       observer.disconnect()
       window.clearTimeout(settle)
+      window.clearInterval(reachTimer)
       el.removeEventListener("pointerover", onOver)
       el.removeEventListener("focusin", onFocusIn)
       el.removeEventListener("focusout", onFocusOut)

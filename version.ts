@@ -1,1 +1,1 @@
-export const KIT_VERSION = "1.3.3"
+export const KIT_VERSION = "1.3.4"

@@ -1,6 +1,6 @@
 {
   "name": "@404media/site-kit",
-  "version": "1.3.3",
+  "version": "1.3.4",
   "description": "How a client site talks to the 404media editor (app.404media.at).",
   "license": "UNLICENSED",
   "type": "module",
