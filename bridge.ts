@@ -17,7 +17,16 @@ export type Selection = string | "header" | "footer" | null
  * editor's outline after the footer. Selecting it (`popup:<id>`) opens it in
  * the frame; `content` names the shared content its texts belong to.
  */
-export type EditorPopup = { id: string; label: string; content?: string }
+export type EditorPopup = {
+  id: string
+  label: string
+  content?: string
+  /**
+   * The states the editor can show it in — a form's "Formular", "Danke", "Fehler",
+   * a stepper's steps. The first is the default; the open one reaches the site as `usePopup(id).view`.
+   */
+  views?: { id: string; label: string }[]
+}
 
 export const popupSelection = (id: string) => `popup:${id}`
 
@@ -41,6 +50,8 @@ export type EditorToSite =
   | { type: "aqtelo:mode"; mode: PreviewMode }
   | { type: "aqtelo:locale"; locale: Locale }
   | { type: "aqtelo:select"; selection: Selection }
+  /** The state the open pop-up shows (`EditorPopup.views`); null = its first. */
+  | { type: "aqtelo:view"; view: string | null }
   | { type: "aqtelo:scrollTo"; selection: Exclude<Selection, null>; align?: "start" | "center" }
   /** Scrolls the page by this many pixels — while a block is dragged over it. */
   | { type: "aqtelo:scrollBy"; top: number }

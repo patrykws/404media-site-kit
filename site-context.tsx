@@ -22,6 +22,8 @@ export type SiteContextValue = {
   site: SiteData
   theme: Theme
   selection: Selection
+  /** The state the open pop-up is shown in (`EditorPopup.views`); null = its first. */
+  view?: string | null
   select: (selection: Selection) => void
   edit: (blockId: string, field: string, value: string) => void
   navigate: (slug: string) => void
@@ -62,6 +64,7 @@ export function useEditorPopups(popups: EditorPopup[]) {
 /**
  * Whether the editor has this pop-up open (its outline row is selected), and
  * how to report it closed. Always closed outside edit mode and outside a `SiteProvider`.
+ * `view`: the state the editor shows it in (one of the `views` it announced), null = the first.
  */
 export function usePopup(id: string) {
   /* Also outside a `SiteProvider` — a dialog the live site renders in its own layout. */
@@ -71,7 +74,8 @@ export function usePopup(id: string) {
   const close = React.useCallback(() => {
     if (open) select?.(null)
   }, [open, select])
-  return { open, close }
+  const view = open ? (ctx?.view ?? null) : null
+  return { open, close, view }
 }
 
 /** The entries of one collection, newest first — drafts in the editor, published on the live site. */

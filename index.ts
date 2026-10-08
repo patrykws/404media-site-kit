@@ -4,7 +4,9 @@ export type {
   BlockSource,
   CollectionItem,
   CollectionType,
+  ContentGroup,
   ContentType,
+  FormInfo,
   Entry,
   EntryRef,
   FieldDescriptor,
@@ -40,9 +42,10 @@ export {
   normaliseBlock,
   newBlockFromManifest,
   defineContent,
+  defineForm,
   normaliseContent,
 } from "./define-block"
-export type { BlockDefinition, BlockComponentProps, Registry, AnyBlockDefinition } from "./define-block"
+export type { BlockDefinition, BlockComponentProps, Registry, AnyBlockDefinition, ContentSection } from "./define-block"
 export { FONTS, THEME_SPEC, DEFAULT_THEME, themeVars, themeCss, fontsHref, fontByName, applyThemeToDocument, loadFonts } from "./theme"
 export type { EditorToSite, SiteToEditor, PreviewMode, Locale, Selection, Rect, KeyPress, EditorPopup } from "./bridge"
 export { isEditorMessage, isSiteMessage, popupSelection } from "./bridge"

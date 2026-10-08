@@ -174,17 +174,55 @@ function defaultOptions(definition: AnyBlockDefinition): Record<string, string> 
 /* Shared content — declared by the site, edited in the CMS            */
 /* ------------------------------------------------------------------ */
 
-export function defineContent<const F extends Record<string, ItemFieldDescriptor>>(type: {
+type ContentSpec = {
   key: string
   label: Text
   description?: Text
   kind: "single" | "list"
-  fields: F
-  titleField?: keyof F & string
+  titleField?: string
   chrome?: ("header" | "footer")[]
   language?: string
+}
+
+/** One section of a long text list in the CMS: a title and its fields, in order. */
+export type ContentSection = { title: Text; fields: Record<string, ItemFieldDescriptor> }
+
+/**
+ * Shared content. A long `single` list gives `sections` instead of `fields`:
+ * the CMS shows one titled section each ("Kontaktformular", "Fehlerseite" …).
+ */
+export function defineContent<const F extends Record<string, ItemFieldDescriptor>>(
+  type: ContentSpec & { fields: F; titleField?: keyof F & string }
+): ContentType
+export function defineContent(type: ContentSpec & { kind: "single"; sections: ContentSection[] }): ContentType
+export function defineContent(
+  type: ContentSpec & { fields?: Record<string, ItemFieldDescriptor>; sections?: ContentSection[] }
+): ContentType {
+  const { sections, fields, ...rest } = type
+  if (!sections) return { ...rest, fields: fields ?? {} }
+  return {
+    ...rest,
+    fields: Object.assign({}, ...sections.map((section) => section.fields)),
+    groups: sections.map((section) => ({ title: section.title, fields: Object.keys(section.fields) })),
+  }
+}
+
+/**
+ * A form of the site (contact, application …). Its texts, choices and
+ * on/off questions are content like any other; the site keeps drawing the
+ * form its own way (one page, a stepper …) and names its states to the editor
+ * with `useEditorPopups([{ id, label, content: key, views }])`, read back with `usePopup(id).view`.
+ * `recipient`: where the enquiries go — shown in the editor, never editable there.
+ */
+export function defineForm(form: {
+  key: string
+  label: Text
+  description?: Text
+  recipient?: string
+  sections: ContentSection[]
 }): ContentType {
-  return type
+  const { recipient, ...rest } = form
+  return { ...defineContent({ ...rest, kind: "single" }), form: { recipient } }
 }
 
 /** The value of one content type, filled to its full shape (missing fields get an empty value). */

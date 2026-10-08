@@ -192,6 +192,17 @@ export type ContentType = {
   chrome?: ("header" | "footer")[]
   /** With chrome: the page language it belongs to ("de", "en") — a German page's header opens the German menu. */
   language?: string
+  /** single: the CMS shows the fields in these sections, in this order (`defineContent({ sections })`). */
+  groups?: ContentGroup[]
+  /** A form of the site (`defineForm`): listed under "Formulare", its pop-up previewed in every state. */
+  form?: FormInfo
+}
+
+export type ContentGroup = { title: Text; fields: string[] }
+
+export type FormInfo = {
+  /** Where the enquiries go — shown read-only; only 404media changes it (the site's code or env). */
+  recipient?: string
 }
 
 /* ------------------------------------------------------------------ */

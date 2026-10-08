@@ -50,6 +50,7 @@ export function PreviewHost({
   const [mode, setMode] = React.useState<PreviewMode>("edit")
   const [locale, setLocale] = React.useState<Locale>("de")
   const [selection, setSelection] = React.useState<Selection>(null)
+  const [view, setView] = React.useState<string | null>(null)
 
   const post = React.useCallback(
     (message: SiteToEditor) => {
@@ -233,6 +234,10 @@ export function PreviewHost({
           break
         case "aqtelo:select":
           setSelection(message.selection)
+          setView(null)
+          break
+        case "aqtelo:view":
+          setView(message.view)
           break
         case "aqtelo:scrollTo":
           document
@@ -256,6 +261,7 @@ export function PreviewHost({
       site,
       theme,
       selection,
+      view,
       select: (next) => {
         setSelection(next)
         post({ type: "aqtelo:select", selection: next })
@@ -265,7 +271,7 @@ export function PreviewHost({
       popups: (popups) => post({ type: "aqtelo:popups", popups }),
       href: (target) => resolveHref(site, target),
     }),
-    [mode, locale, site, theme, selection, post]
+    [mode, locale, site, theme, selection, view, post]
   )
 
   const collection = entry ? registry.collection(entry.collection) : undefined
